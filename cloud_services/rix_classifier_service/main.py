@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 import uvicorn # For local testing if needed
 import os # To get PORT from environment for Cloud Run
 from typing import Literal # This is absolutely essential.
-# --- Configure logging ---
+from typing import List, Optional, Dict, Literal # Literal was already there, ensure List and Optional are too
 # Basic logging configuration. Cloud Run will capture stdout/stderr.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
