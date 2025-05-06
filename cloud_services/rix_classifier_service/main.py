@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends
 from pydantic import BaseModel, Field
 import uvicorn # For local testing if needed
 import os # To get PORT from environment for Cloud Run
-
+from typing import Literal # This is absolutely essential.
 # --- Configure logging ---
 # Basic logging configuration. Cloud Run will capture stdout/stderr.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
