@@ -7,6 +7,7 @@ from typing import Any, Optional, Dict, List # Added List
 import logging
 import datetime
 import uuid # For generating fake IDs
+from pathlib import Path # Added for potential use in fake logic
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [%(name)s] - %(message)s')
@@ -48,7 +49,7 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
 
     tool_args_processed = request.tool_args if isinstance(request.tool_args, dict) else {}
 
-    # --- General Fake Tools (from previous version) ---
+    # --- General Fake Tools (Keep these available) ---
     if request.tool_name == "list_files":
         path_arg = tool_args_processed.get("path", ".")
         fake_result = {
@@ -61,9 +62,6 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
             fake_status = "failed"; fake_result = None; fake_message = f"Fake error listing directory '{path_arg}'."; fake_error = {"code": "FAKE_LIST_ERROR", "message": "Simulated listing error."}
     
     elif request.tool_name == "fetch_url":
-        # ... (keeping fetch_url, read_file, write_file, etc. from previous version for brevity, assume they are here) ...
-        # For full file, see my response where I last provided the full Tool Executor code.
-        # We'll add the new cartoon tools below.
         url_arg = tool_args_processed.get("url", "http://fake.example.com/news")
         if "bbc.com" in url_arg:
              fake_result = "<html><head><title>Fake BBC News</title></head><body><h1>Breaking Fake News: AI Learns to Make Coffee</h1><p>Scientists are astounded...</p></body></html>"
@@ -96,7 +94,7 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
         text_prompt = tool_args_processed.get("text_prompt", "No prompt provided")
         fake_video_filename = f"rough_scene_{uuid.uuid4().hex[:8]}.mp4"
         fake_result = {
-            "video_path": f"/fake/generated_videos/{fake_video_filename}",
+            "video_path": f"/fake/generated_videos/{fake_video_filename}", # Using posix-style paths for consistency
             "duration_sec": 8,
             "prompt_used": text_prompt,
             "message": "Fake VEO 2 rough scene generated successfully."
@@ -108,7 +106,7 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
     elif request.tool_name == "cartoon_keyframe_extractor": # Phase 2
         video_path = tool_args_processed.get("video_path", "/fake/unknown_video.mp4")
         output_dir_fake = f"/fake/extracted_frames/scene_{uuid.uuid4().hex[:6]}"
-        num_fake_frames = 16 # e.g., 8 sec video, 2fps
+        num_fake_frames = 16 
         fake_frames_list = [f"{output_dir_fake}/frame_{i:03d}.jpg" for i in range(1, num_fake_frames + 1)]
         fake_result = {
             "extracted_frames_paths": fake_frames_list,
@@ -122,13 +120,16 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
             fake_status = "failed"; fake_result = None; fake_message = "Fake keyframe extraction failed for bad video."; fake_error = {"code": "FAKE_FFMPEG_ERROR", "message": "Simulated ffmpeg/moviepy error on video."}
 
     elif request.tool_name == "cartoon_frame_stylizer": # Phase 3
-        # This tool would likely be called multiple times, once per frame.
         image_path = tool_args_processed.get("image_path", "/fake/frames/unknown_frame.jpg")
         style_prompt = tool_args_processed.get("style_prompt", "default cartoon style")
-        # reference_image_path = tool_args_processed.get("reference_image_path") # Optional
-
-        stylized_image_filename = f"stylized_{Path(image_path).stem}_{uuid.uuid4().hex[:4]}.jpg" # Requires Path from pathlib
-        fake_stylized_path = f"/fake/stylized_frames/{stylized_image_filename}"
+        
+        # Generate a plausible fake stylized path using pathlib for stem extraction
+        try:
+            stylized_image_filename = f"stylized_{Path(image_path).stem}_{uuid.uuid4().hex[:4]}.jpg" 
+        except Exception: # Fallback if Path fails (e.g., invalid chars in fake path)
+            stylized_image_filename = f"stylized_frame_{uuid.uuid4().hex[:4]}.jpg"
+            
+        fake_stylized_path = f"/fake/stylized_frames/{stylized_image_filename}" # Use posix separator
         
         fake_result = {
             "stylized_image_path": fake_stylized_path,
@@ -142,24 +143,28 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
 
     elif request.tool_name == "cartoon_final_scene_generator": # Phase 4
         ordered_frame_paths = tool_args_processed.get("ordered_frame_paths", [])
-        if not isinstance(ordered_frame_paths, list) or not all(isinstance(p, str) for p in ordered_frame_paths):
-             ordered_frame_paths = ["/fake/stylized_frames/dummy_frame.jpg"] # fallback
+        if not isinstance(ordered_frame_paths, list): # Basic type check
+             ordered_frame_paths = [] # Treat invalid input as empty list
              
         final_video_filename = f"final_scene_{uuid.uuid4().hex[:8]}.mp4"
         fake_result = {
-            "final_video_path": f"/fake/final_videos/{final_video_filename}",
+            "final_video_path": f"/fake/final_videos/{final_video_filename}", # Use posix separator
             "frames_used_count": len(ordered_frame_paths),
-            "input_frame_preview": ordered_frame_paths[:3], # Show first 3
+            "input_frame_preview": ordered_frame_paths[:3], # Show first 3 paths
             "message": "Fake VEO 2 final scene from frames generated successfully."
         }
         fake_message = f"Fake final scene generated from {len(ordered_frame_paths)} frames."
-        if not ordered_frame_paths or "empty_frames" in str(tool_args_processed): # Check for a specific fail condition
+        if not ordered_frame_paths or "empty_frames" in str(tool_args_processed).lower(): # Check for empty list or keyword
             fake_status = "failed"; fake_result = None; fake_message = "Fake VEO 2 final scene generation failed (no input frames)."; fake_error = {"code": "FAKE_VEO_SEQ_ERROR", "message": "Simulated VEO 2 error due to missing frames."}
 
     elif request.tool_name == "cartoon_memory_updater": # Phase 5
-        stylized_frames_info = tool_args_processed.get("stylized_frames_info", []) # Expecting a list of dicts
+        stylized_frames_info = tool_args_processed.get("stylized_frames_info", []) 
         scene_id = tool_args_processed.get("scene_id", f"scene_{uuid.uuid4().hex[:6]}")
         
+        # Ensure it's a list, default to empty if not
+        if not isinstance(stylized_frames_info, list):
+             stylized_frames_info = []
+             
         fake_vector_db_ids = [f"vector_id_{uuid.uuid4().hex[:4]}" for _ in stylized_frames_info]
         fake_firestore_doc_id = f"fs_{scene_id}"
 
@@ -171,23 +176,19 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
             "message": "Fake memory update successful (Firestore + Vector Search)."
         }
         fake_message = f"Fake memory updated for scene '{scene_id}' with {len(stylized_frames_info)} frames."
-        if "fail_memory_update"  in str(tool_args_processed):
+        if "fail_memory_update"  in str(tool_args_processed).lower(): # Check for keyword
             fake_status = "failed"; fake_result = None; fake_message = "Fake memory update failed as requested."; fake_error = {"code": "FAKE_MEMORY_SAVE_ERROR", "message": "Simulated error during memory save operation."}
             
     # --- Fallback for other general tools or unrecognized tools ---
-    # (Keep logic for other tools like get_recent_system_status, make_dirs etc. if they were in your previous version)
-    # For brevity, I am omitting them here but you should merge them back if they existed.
-    # Example:
-    # elif request.tool_name == "get_recent_system_status":
-    #     # ... fake logic for this tool ...
+    # Add back other fake tools like get_recent_system_status etc. here if needed
 
     else: # Fallback for completely unrecognized tools
         fake_status = "failed"
         fake_result = None
-        fake_message = f"Tool '{request.tool_name}' is not recognized by this fake executor service."
+        fake_message = f"Tool '{request.tool_name}' is not recognized by this fake executor service (V60.1)."
         fake_error = {"code": "UNKNOWN_FAKE_TOOL", "message": f"Tool '{request.tool_name}' has no predefined fake response."}
 
-    logger.info(f"Returning fake response for tool '{request.tool_name}': Status='{fake_status}', Message='{fake_message}'")
+    logger.info(f"Returning fake response for tool '{request.tool_name}': Status='{fake_status}'")
     return ToolExecutionResponse(
         command=request.tool_name,
         status=fake_status,
@@ -198,15 +199,15 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
     )
 
 @app.get("/")
-async def root_status_check():
-    logger.info("Root path '/' accessed - Tool Executor Service (V60.1) is alive.")
+async def root_status_check(request: FastAPIRequest): 
+    client_host = request.client.host if request.client else "unknown"
+    logger.info(f"Root path '/' accessed by {client_host} - Tool Executor Service (V60.1) is alive check.")
     return {"message": "Rix Tool Executor Service (V60.1 - Fake Responses for Cartoon Director) is running."}
 
 # For local testing (optional):
 # if __name__ == "__main__":
 #     import uvicorn
-#     from pathlib import Path # Add this if you test locally and use Path above
-#     logger.info("Starting Rix Tool Executor Service locally on port 8080...")
-#     uvicorn.run(app, host="0.0.0.0", port=8080)
+#     logger.info("Starting Rix Tool Executor Service locally on port specified by Uvicorn (e.g. 8080)...")
+#     uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8080)), reload=True)
 
 # --- END OF FILE rix-tool-executor-service/main.py ---
