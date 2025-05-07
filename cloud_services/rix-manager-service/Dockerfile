@@ -1,35 +1,49 @@
-# --- START OF REVISED Dockerfile (run build from Pro_Rix root) ---
-# File is located at: cloud_services/rix-manager-service/Dockerfile
-# Build context is now assumed to be Pro_Rix/
+# --- START OF FILE cloud_services/rix-manager-service/Dockerfile ---
+# Version: V60.1 Build Fix (Use Project Root Context)
 
-FROM python:3.11-slim 
+# Use the official Python 3.11 slim image as a base
+FROM python:3.11-slim
 
+# Set common environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+
+# Set the working directory inside the container
 WORKDIR /app
-ENV RIX_PROJECT_ROOT=/app 
 
-# CRITICAL COPY CHANGES: Paths are now relative to Pro_Rix/ context
+# --- Define RIX_PROJECT_ROOT environment variable ---
+# This tells config_manager.py (once loaded) where the project root is INSIDE the container.
+# Since WORKDIR is /app, this should point to /app.
+ENV RIX_PROJECT_ROOT=/app
 
-# Copy service-specific requirements
-COPY requirements.txt .
+# --- Copy files relative to the build context (Pro_Rix/) ---
+
+# Copy the service-specific requirements file first for better Docker caching
+COPY cloud_services/rix-manager-service/requirements.txt ./requirements.txt
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy service-specific main.py
-COPY cloud_services/rix-manager-service/main.py
+# Copy the service-specific main.py file
+COPY cloud_services/rix-manager-service/main.py ./main.py
 
-# Copy the entire Rix_Brain directory from context root (Pro_Rix/Rix_Brain)
+# Copy the entire shared Rix_Brain directory from the build context (Pro_Rix/Rix_Brain)
+# into the container's working directory (/app/Rix_Brain)
 COPY Rix_Brain ./Rix_Brain
 
-# Copy the config.json file from context root (Pro_Rix/config.json)
+# Copy the shared config.json file from the build context (Pro_Rix/config.json)
+# into the container's working directory (/app/config.json)
 COPY config.json ./config.json
 
-# Optional: Copy Rix_Auth if SA key needed locally (NOT recommended for Cloud Run)
-# COPY Rix_Brain/Rix_Auth ./Rix_Brain/Rix_Auth 
+# --- Optional: Add build-time debug ---
+# Uncomment the next line ONLY if you are still having trouble and want to see
+# the file structure inside the image during the build process (check Cloud Build logs).
+# RUN ls -R /app
 
-# Optional: Add debug
-RUN ls -R /app 
-
+# Expose the port the application will run on (must match the CMD port)
 EXPOSE 8080
+
+# Command to run the Uvicorn server when the container starts
+# Ensure 'app' in 'main:app' matches the FastAPI() instance variable name in your main.py
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
-# --- END OF REVISED Dockerfile ---
+# --- END OF FILE cloud_services/rix-manager-service/Dockerfile ---
