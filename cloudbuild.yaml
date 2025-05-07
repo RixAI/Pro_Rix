@@ -1,0 +1,40 @@
+# Pro_Rix/cloudbuild.yaml
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+      'build',
+      '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$SERVICE_NAME:$COMMIT_SHA',
+      '-f', 'cloud_services/rix-manager-service/Dockerfile', # Specify Dockerfile location
+      '.'  # Use the entire repo root as context
+      ]
+  id: 'Build'
+
+# Push the container image to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$SERVICE_NAME:$COMMIT_SHA']
+  id: 'Push'
+  
+# Deploy image to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: [
+      'run', 'deploy', 'rix-manager-service', # Service name
+      '--image', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$SERVICE_NAME:$COMMIT_SHA',
+      '--platform', 'managed',
+      '--region', 'us-central1',
+      '--allow-unauthenticated',
+      '--service-account', '613283569085-compute@developer.gserviceaccount.com',
+      '--project', '$PROJECT_ID'
+      # Add other deploy flags here
+      ]
+  id: 'Deploy'
+
+# Define substitutions (optional but good practice)
+substitutions:
+  _SERVICE_NAME: 'rix-manager-service' # Optional: Makes it easier to reuse
+  # Cloud Build provides $PROJECT_ID, $COMMIT_SHA, $REPO_NAME automatically
+  
+images: ['us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$SERVICE_NAME:$COMMIT_SHA']
+
+# Optional: specify timeout for the build
+# timeout: '1200s' 
