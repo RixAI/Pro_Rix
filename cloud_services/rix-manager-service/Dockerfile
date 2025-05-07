@@ -7,7 +7,7 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 WORKDIR /app
-ENV RIX_PROJECT_ROOT=/app # Still useful for config_manager inside container
+ENV RIX_PROJECT_ROOT=/app 
 
 # CRITICAL COPY CHANGES: Paths are now relative to Pro_Rix/ context
 
