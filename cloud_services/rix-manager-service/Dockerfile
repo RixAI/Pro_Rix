@@ -1,27 +1,32 @@
-# C:\Rix_Dev\Pro_Rix\cloud_services\rix_classifier_service\Dockerfile
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+# Assuming your Dockerfile is in:
+# C:\Users\Vishal Sharma\OneDrive\Documents\GitHub\Pro_Rix\cloud_services\rix-manager-service\Dockerfile
+
+# Python base image
+FROM python:3.11-slim 
+
+# Set environment variables for Python
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
+# Copy the requirements file for the service and install dependencies
 COPY requirements.txt .
-
-# Install any needed packages specified in requirements.txt
-# Use --no-cache-dir to reduce image size
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container at /app
-COPY . .
+# Copy the service's own main.py file
+COPY main.py .
 
-# Make port 8080 available to the world outside this container
-# Cloud Run will map requests to this port by default.
-EXPOSE 8080
+# --- CRITICAL PART ---
+# Copy the Rix_Brain directory from the project root into the container's /app directory
+# ../../ refers to going up two levels from cloud_services/rix-manager-service/ to Pro_Rix/
+COPY ../../Rix_Brain ./Rix_Brain
 
-# Define environment variable for the Uvicorn workers (Cloud Run recommendation)
-ENV PYTHONUNBUFFERED TRUE
-ENV PORT 8080
-ENV TIMEOUT 60 
-# Using Gunicorn with Uvicorn workers is standard for FastAPI on Cloud Run
-CMD exec gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout $TIMEOUT main:app
+# Copy the config.json file from the project root into the container's /app directory
+COPY ../../config.json ./config.json
+# --- END CRITICAL PART ---
+
+# Command to run the application (adjust if your port or app variable is different)
+# Make sure your main.py FastAPI app is named 'app' (e.g., app = FastAPI())
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
