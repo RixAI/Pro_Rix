@@ -1,0 +1,26 @@
+# Pro_Rix/.gitignore
+
+# Service Account Keys
+*.json
+
+# Environment variables
+.env
+*.env
+
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code settings specific to user
+.vscode/settings.json 
+.vscode/tasks.json
+.vscode/launch.json
+
+# IDE / OS files
+.idea/
+*.DS_Store
