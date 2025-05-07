@@ -1,21 +1,8 @@
-# --- START OF FILE cloud_services/rix-manager-service/requirements.txt ---
-fastapi>=0.110.0,<1.0.0
-uvicorn[standard]>=0.29.0,<1.0.0
-pydantic>=2.7.0,<3.0.0
-python-dotenv>=1.0.0 
-
-# GCP Client Libraries needed by Rix_Brain/core/initialization.py
+# ... FastAPI, Uvicorn, Pydantic, python-dotenv ...
 google-cloud-aiplatform>=1.47.0 
-google-cloud-firestore>=2.14.0       # For: from google.cloud import firestore
-langchain-google-firestore           # For: from langchain_google_firestore import FirestoreSaver (if used by init)
-google-cloud-secret-manager>=2.18.0  # For: from google.cloud.secretmanager import SecretManagerServiceClient
-google-auth>=2.29.0                  # Often a core dependency for GCP libs
-
-# Cloud SQL Connector and DB driver (if initialization.py tries to init SQL pool)
-# If manager service doesn't truly need SQL, we could make init_core skip this.
-# For now, let's include them to match initialization.py's imports.
+google-cloud-firestore>=2.14.0
+langchain-google-firestore
+google-cloud-secret-manager>=2.18.0
+google-auth>=2.29.0 
 cloud-sql-python-connector[pg8000]>=1.5.0
-SQLAlchemy>=2.0.0,<3.0.0 # Match your main requirements if different
-# pg8000 is included by the connector specifier above
-
-# --- END OF FILE cloud_services/rix-manager-service/requirements.txt ---
+SQLAlchemy>=2.0.0,<3.0.0
