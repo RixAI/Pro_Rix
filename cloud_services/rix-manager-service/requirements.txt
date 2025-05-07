@@ -1,9 +1,8 @@
-# --- START OF FILE cloud_services/rix-manager-service/requirements.txt ---
-fastapi>=0.110.0,<1.0.0
-uvicorn[standard]>=0.29.0,<1.0.0
-pydantic>=2.7.0,<3.0.0
-google-cloud-aiplatform>=1.47.0 # For Vertex AI LLM calls via Rix_Brain.services.vertex_llm
-python-dotenv>=1.0.0 # If Rix_Brain.core.config_manager uses it and .env files are packaged
-# Add any other direct dependencies this service's main.py might have,
-# or that Rix_Brain modules it directly invokes might have (that aren't covered by aiplatform).
-# --- END OF FILE cloud_services/rix-manager-service/requirements.txt ---
+# ... FastAPI, Uvicorn, Pydantic, python-dotenv ...
+google-cloud-aiplatform>=1.47.0 
+google-cloud-firestore>=2.14.0
+langchain-google-firestore
+google-cloud-secret-manager>=2.18.0
+google-auth>=2.29.0 
+cloud-sql-python-connector[pg8000]>=1.5.0
+SQLAlchemy>=2.0.0,<3.0.0
