@@ -1,8 +1,33 @@
-# ... FastAPI, Uvicorn, Pydantic, python-dotenv ...
-google-cloud-aiplatform>=1.47.0 
-google-cloud-firestore>=2.14.0
-langchain-google-firestore
+# requirements.txt - V53.0 - Attempting Max Pip Resolution
+
+# Python Version Target: ~=3.11
+
+# === Orchestration & LangChain Core ===
+# Let pip choose these, ensuring recent enough for langgraph
+langchain-core>=0.1.52 # Provide a known good floor for core
+langgraph>=0.4.1       # Ensure we get a recent langgraph
+langchain-google-firestore # Let pip pick the latest compatible for firestore checkpoints
+
+# === LangChain Google Integrations (Optional - if direct wrappers are still used elsewhere) ===
+# If you only need langgraph + its checkpointer, you might not even need these explicitly
+# langchain-google-vertexai # If used directly outside of models called by Cloud Run
+
+# === Google Cloud SDKs (Direct Use in Initialization/Services) ===
+google-cloud-aiplatform>=1.47.0
+google-cloud-firestore>=2.14.0      # Needed by langchain-google-firestore & possibly init
 google-cloud-secret-manager>=2.18.0
-google-auth>=2.29.0 
-cloud-sql-python-connector[pg8000]>=1.5.0
-SQLAlchemy>=2.0.0,<3.0.0
+google-auth>=2.29.0
+
+# === Database ===
+cloud-sql-python-connector[pg8000]>=1.5.0 # Allow updates
+SQLAlchemy>=2.0.30,<3.0.0
+
+# === Cloud Run Service Framework (Future Use) ===
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.29.0,<1.0.0
+
+# === Other Core Dependencies ===
+httpx>=0.27.0,<1.0.0
+pydantic>=2.7.0,<3.0.0
+python-dotenv>=1.0.0
+typing-extensions>=4.10.0
