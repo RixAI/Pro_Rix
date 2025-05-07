@@ -14,7 +14,7 @@
   "MEMORY_WRITER_TEMPERATURE": 1.0,
   "WORKER_TEMPERATURE": 1.0,
   "EMBEDDING_MODEL": "text-embedding-005",
-  "FIRESTORE_DATABASE_ID": "rix-agi-chat-one",
+  "FIRESTORE_DATABASE_ID": "rix-agi-chat",
   "RIX_CLASSIFIER_SERVICE_URL": "https://rix-classifier-service-613283569085.us-central1.run.app",
   "RIX_THINKER_SERVICE_URL": "https://your-rix-thinker-service-placeholder-url.a.run.app",
   "MAX_ORCHESTRATION_STEPS": 12,
