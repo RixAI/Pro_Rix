@@ -1,0 +1,5 @@
+# C:\Rix_Dev\Pro_Rix\cloud_services\rix_classifier_service\requirements.txt
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.29.0,<1.0.0
+pydantic>=2.7.0,<3.0.0
+gunicorn>=20.1.0,<23.0.0 # Added gunicorn for production server
