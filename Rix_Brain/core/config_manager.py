@@ -128,6 +128,8 @@ def _load_environment_variables():
     print(f"--- {__name__}: Environment variables loading attempted.", flush=True)
 
 
+# --- START OF CORRECTED _load_config_file function in Rix_Brain/core/config_manager.py ---
+
 def _load_config_file():
     """Loads configuration from the config.json file."""
     global _CONFIG_LOADED, _CONFIG_DATA
@@ -135,45 +137,35 @@ def _load_config_file():
 
     logger.info(f"{__name__}: Attempting to load config file from: {CONFIG_FILE_PATH}")
     
-    # Use defaults based on the config.json content you provided earlier
     default_config = { 
         "MANAGER_MODEL": "gemini-2.5-flash-preview-04-17", "THINKER_MODEL": "gemini-2.5-pro-preview-03-25",
         "REFINER_MODEL": "gemini-2.5-flash-preview-04-17", "CLASSIFIER_MODEL": "gemini-2.5-pro-preview-03-25",
         "MEMORY_WRITER_MODEL": "gemini-2.5-flash-preview-04-17", "WORKER_MODEL": "gemini-2.5-flash-preview-04-17",
-        "GOOGLE_API_KEY": None, # API Key is usually better handled by env vars
-        "GOOGLE_CLOUD_PROJECT": None, # Must be set
-        "GOOGLE_CLOUD_LOCATION": None, # Must be set
+        "GOOGLE_API_KEY": None, "GOOGLE_CLOUD_PROJECT": None, "GOOGLE_CLOUD_LOCATION": None, 
         "MANAGER_TEMPERATURE": 1.0, "THINKER_TEMPERATURE": 1.0, "CLASSIFIER_TEMPERATURE": 1.0, "MEMORY_WRITER_TEMPERATURE": 1.0, "WORKER_TEMPERATURE": 1.0,
         "EMBEDDING_MODEL": "text-embedding-005", "FIRESTORE_DATABASE_ID": "rix-agi-chat",
         "RIX_CLASSIFIER_SERVICE_URL": None, "RIX_THINKER_SERVICE_URL": None,
         "RIX_TOOL_EXECUTOR_SERVICE_URL": None, "RIX_MEMORY_WRITER_SERVICE_URL": None,
-        "RIX_MANAGER_SERVICE_URL": None, "RIX_FINALIZER_SERVICE_URL": None, # Include all service URLs
+        "RIX_MANAGER_SERVICE_URL": None, "RIX_FINALIZER_SERVICE_URL": None, 
         "MAX_ORCHESTRATION_STEPS": 12, "ACKNOWLEDGE_WORK_FLOWS": True, "ACKNOWLEDGE_ASK_FLOWS": True,
         "DB_USER": "postgres", "DB_NAME": "postgres", "DB_INSTANCE_CONNECTION_NAME": None,
         "DB_PASSWORD_SECRET_NAME": None, "DB_IAM_USER": None,
-        "RIX_PROJECT_PATHS_CONFIG": { # Add the paths config block
-            "ASSUMED_PROJECT_ROOT_IN_CONTAINER": "/app",
-            "RIX_BRAIN_SUBDIR": "Rix_Brain",
-            "CONFIG_SUBDIR_FROM_PROJECT_ROOT": ".",
-            "SOULS_SUBDIR_FROM_RIX_BRAIN": "agents/souls",
-            "RIX_AUTH_SUBDIR_FROM_RIX_BRAIN": "Rix_Auth",
-            "CARTOON_DIRECTOR_SUBDIR_FROM_PROJECT_ROOT": "rix_cartoon_director",
-            "CARTOON_TOOLS_SUBDIR_FROM_CARTOON_DIRECTOR": "tools",
-            "CARTOON_MEMORY_SUBDIR_FROM_CARTOON_DIRECTOR": "memory"
+        "RIX_PROJECT_PATHS_CONFIG": { 
+            "ASSUMED_PROJECT_ROOT_IN_CONTAINER": "/app", "RIX_BRAIN_SUBDIR": "Rix_Brain",
+            "CONFIG_SUBDIR_FROM_PROJECT_ROOT": ".", "SOULS_SUBDIR_FROM_RIX_BRAIN": "agents/souls",
+            "RIX_AUTH_SUBDIR_FROM_RIX_BRAIN": "Rix_Auth", "CARTOON_DIRECTOR_SUBDIR_FROM_PROJECT_ROOT": "rix_cartoon_director",
+            "CARTOON_TOOLS_SUBDIR_FROM_CARTOON_DIRECTOR": "tools", "CARTOON_MEMORY_SUBDIR_FROM_CARTOON_DIRECTOR": "memory"
         },
-        "MANAGER_SOUL_FILENAME": "manager_v3_21.json", # Default soul filenames
-        "THINKER_SOUL_FILENAME": "thinker_v4_0.json",
-        "CLASSIFIER_SOUL_FILENAME": "classifier_v1_2.json",
-        "MEMORY_WRITER_SOUL_FILENAME": "memory_writer_v1_0.json"
-        # Add other configs with sensible defaults
+        "MANAGER_SOUL_FILENAME": "manager_v3_21.json", "THINKER_SOUL_FILENAME": "thinker_v4_0.json",
+        "CLASSIFIER_SOUL_FILENAME": "classifier_v1_2.json", "MEMORY_WRITER_SOUL_FILENAME": "memory_writer_v1_0.json"
     }
 
+    # Load from file or use defaults
     if CONFIG_FILE_PATH.is_file():
         try:
             with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
                 loaded_config = json.load(f)
             logger.info(f"{__name__}: Configuration successfully loaded from: {CONFIG_FILE_PATH}")
-            # Merge loaded config OVER defaults
             _CONFIG_DATA = {**default_config, **loaded_config} 
         except Exception as e:
             logger.error(f"{__name__}: Error loading or parsing config.json from {CONFIG_FILE_PATH}: {e}. Using defaults ONLY.", exc_info=True)
@@ -182,29 +174,36 @@ def _load_config_file():
         logger.warning(f"{__name__}: Config file {CONFIG_FILE_PATH} not found. Using defaults ONLY.")
         _CONFIG_DATA = default_config
 
-    # Critical key check (ensure these are set either by config.json or environment vars)
-    required_keys = ["GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION"] 
-    # Add other truly essential keys like DB secrets if not optional
-    missing_keys = [k for k in required_keys if not get_config(k)] # Use get_config to check effective value
-    if missing_keys:
-         logger.critical(f"{__name__}: CRITICAL CONFIG MISSING after loading! Keys not found/set: {', '.join(missing_keys)}")
-         # Depending on severity, could raise an exception here
-
-    # Ensure temperatures are floats
+    # Ensure temperatures are floats AFTER loading
     temp_keys = [k for k in _CONFIG_DATA if k.endswith("_TEMPERATURE")]
     for key in temp_keys:
         try:
-            _CONFIG_DATA[key] = float(_CONFIG_DATA.get(key)) # Use .get() for safety
+            _CONFIG_DATA[key] = float(_CONFIG_DATA.get(key))
         except (ValueError, TypeError, KeyError):
-            default_temp = 0.7 # A generic default
+            default_temp = 0.7 
             logger.warning(f"{__name__}: Invalid/missing temp format for {key}. Setting default {default_temp}.")
             _CONFIG_DATA[key] = default_temp
 
-    _CONFIG_LOADED = True
-    logger.debug(f"{__name__}: Final effective config data loaded.")
-    print(f"--- {__name__}: Config file loading attempted.", flush=True)
+    # --- SET FLAG *BEFORE* CALLING get_config ---
+    _CONFIG_LOADED = True 
+    # --------------------------------------------
 
-# --- Accessor Functions ---
+    logger.debug(f"{__name__}: Config data loaded and processed.")
+    print(f"--- {__name__}: Config file loading logic complete.", flush=True)
+
+    # --- NOW check required keys using get_config, which will work safely ---
+    # Note: get_config itself calls ensure_loaded, which now sees _CONFIG_LOADED as True
+    # and won't call _load_config_file again.
+    required_keys = ["GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION"] # Add any others absolutely required
+    missing_keys = [k for k in required_keys if not get_config(k)] 
+    if missing_keys:
+         logger.critical(f"{__name__}: CRITICAL CONFIG MISSING after loading! Keys not found/set: {', '.join(missing_keys)}")
+         # Optionally raise an exception here if these are fatal
+         # raise ValueError(f"Missing required config keys: {missing_keys}")
+    # -----------------------------------------------------------------------
+
+# --- END OF CORRECTED _load_config_file function ---
+
 
 def ensure_loaded():
     """Ensures both environment variables and config file are loaded."""
