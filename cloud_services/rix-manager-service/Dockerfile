@@ -1,28 +1,35 @@
+# --- START OF REVISED Dockerfile (run build from Pro_Rix root) ---
+# File is located at: cloud_services/rix-manager-service/Dockerfile
+# Build context is now assumed to be Pro_Rix/
 
-# C:\Rix_Dev\Pro_Rix\cloud_services\rix_classifier_service\Dockerfile
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+FROM python:3.11-slim 
 
-# Set the working directory in the container
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 WORKDIR /app
+ENV RIX_PROJECT_ROOT=/app # Still useful for config_manager inside container
 
-# Copy the requirements file into the container at /app
-COPY requirements.txt .
+# CRITICAL COPY CHANGES: Paths are now relative to Pro_Rix/ context
 
-# Install any needed packages specified in requirements.txt
-# Use --no-cache-dir to reduce image size
+# Copy service-specific requirements
+COPY cloud_services/rix-manager-service/requirements.txt ./requirements.txt 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container at /app
-COPY . .
+# Copy service-specific main.py
+COPY cloud_services/rix-manager-service/main.py ./main.py 
 
-# Make port 8080 available to the world outside this container
-# Cloud Run will map requests to this port by default.
+# Copy the entire Rix_Brain directory from context root (Pro_Rix/Rix_Brain)
+COPY Rix_Brain ./Rix_Brain
+
+# Copy the config.json file from context root (Pro_Rix/config.json)
+COPY config.json ./config.json
+
+# Optional: Copy Rix_Auth if SA key needed locally (NOT recommended for Cloud Run)
+# COPY Rix_Brain/Rix_Auth ./Rix_Brain/Rix_Auth 
+
+# Optional: Add debug
+RUN ls -R /app 
+
 EXPOSE 8080
-
-# Define environment variable for the Uvicorn workers (Cloud Run recommendation)
-ENV PYTHONUNBUFFERED TRUE
-ENV PORT 8080
-ENV TIMEOUT 60 
-# Using Gunicorn with Uvicorn workers is standard for FastAPI on Cloud Run
-CMD exec gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout $TIMEOUT main:app
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# --- END OF REVISED Dockerfile ---
