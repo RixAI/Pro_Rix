@@ -12,7 +12,7 @@ ENV RIX_PROJECT_ROOT=/app
 # CRITICAL COPY CHANGES: Paths are now relative to Pro_Rix/ context
 
 # Copy service-specific requirements
-COPY cloud_services/rix-manager-service/requirements.txt 
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy service-specific main.py
