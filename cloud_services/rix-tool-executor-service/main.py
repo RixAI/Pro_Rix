@@ -29,9 +29,9 @@ class ToolExecutionResponse(BaseModel):
     command: str
     status: str # "success" or "failed"
     result: Any = None
-    error: Optional[Dict[str, Any]] = None # Changed from Optional[dict] to Optional[Dict[str, Any]]
+    error: Optional[Dict[str, Any]] = None
     message: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None # Changed from Optional[dict] to Optional[Dict[str, Any]]
+    metadata: Optional[Dict[str, Any]] = None
 
 
 @app.post("/execute_tool", response_model=ToolExecutionResponse)
@@ -114,16 +114,95 @@ async def execute_tool_placeholder(request: ToolExecutionRequest):
             fake_result = None
             fake_message = f"Fake error: Cannot write to protected fake path '{path_arg}'."
             fake_error = {"code": "FAKE_WRITE_PERMISSION_ERROR", "message": "Simulated permission denied for writing to this fake file."}
+    
+    # --- Add more fake tools based on your tool_manager.py schemas ---
+    elif request.tool_name == "create_memory_entry": # From memory_tools.py
+        text_arg = tool_args_processed.get("text", "No text provided for fake memory.")
+        fake_result = {
+            "memory_id": f"fake-mem-{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+            "text_preview": text_arg[:70] + "...",
+            "note": "This is a predefined fake response from Tool Executor."
+        }
+        fake_message = "Fake memory entry 'created' successfully by Tool Executor."
 
-    # Add more elif blocks here for other tools like 'create_memory_entry', 'get_recent_system_status', etc.
-    # For example:
-    # elif request.tool_name == "create_memory_entry":
-    #     text_arg = tool_args_processed.get("text", "No text provided for fake memory.")
-    #     fake_result = {
-    #         "memory_id": f"fake-mem-{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}",
-    #         "text_preview": text_arg[:70] + "..."
-    #     }
-    #     fake_message = "Fake memory entry created successfully."
+    elif request.tool_name == "get_recent_system_status": # From system_tools.py
+        fake_result = {
+            "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat() + 'Z',
+            "os": "FakeOS",
+            "os_version": "10.X Ultra",
+            "python_version": "3.11-fake",
+            "status_message": "System appears nominally fake.",
+            "cpu_usage_placeholder": "10-20% (fake)",
+            "memory_usage_placeholder": "30-50% (fake)",
+            "note": "This is a predefined fake response from Tool Executor."
+        }
+        fake_message = "Fake system status retrieved successfully."
+
+    elif request.tool_name == "make_dirs": # From basic_io_tools.py
+        path_arg = tool_args_processed.get("path", "fake_new_dir/subdir")
+        fake_result = {
+            "path_created_fake": path_arg,
+            "note": "This is a predefined fake response from Tool Executor."
+        }
+        fake_message = f"Fake creation of directory '{path_arg}' successful."
+        if "forbidden_dir" in str(path_arg).lower():
+            fake_status = "failed"
+            fake_result = None
+            fake_message = f"Fake error: Cannot create forbidden fake directory '{path_arg}'."
+            fake_error = {"code": "FAKE_MKDIR_ERROR", "message": "Simulated error creating this directory."}
+            
+    elif request.tool_name == "delete_dir": # From basic_io_tools.py
+        path_arg = tool_args_processed.get("path", "fake_dir_to_delete")
+        fake_result = {
+            "path_deleted_fake": path_arg,
+            "note": "This is a predefined DANGEROUS fake response from Tool Executor."
+        }
+        fake_message = f"Fake deletion of directory '{path_arg}' successful."
+        # Add a safety check for very generic paths even in fake mode
+        if path_arg == "." or path_arg == "/" or not path_arg : # Basic check
+            fake_status = "failed"
+            fake_result = None
+            fake_message = f"Fake error: Deletion of very generic path '{path_arg}' blocked for safety even in fake mode."
+            fake_error = {"code": "FAKE_DELDIR_SAFETY_ERROR", "message": "Simulated safety block for deleting generic path."}
+        elif "critical_system_dir_fake" in str(path_arg).lower():
+            fake_status = "failed"
+            fake_result = None
+            fake_message = f"Fake error: Cannot delete critical fake directory '{path_arg}'."
+            fake_error = {"code": "FAKE_DELDIR_CRITICAL_ERROR", "message": "Simulated error deleting critical directory."}
+
+    elif request.tool_name == "scan_directory_tree": # From directory_tools.py
+        path_arg = tool_args_processed.get("path", ".")
+        depth_arg = tool_args_processed.get("depth", 2)
+        fake_result = {
+            "scanned_tree": {
+                ".": {
+                    "dirs": ["fake_docs", "fake_src"],
+                    "files": ["fake_main.py", "fake_config.json"]
+                },
+                "fake_docs": {
+                    "dirs": [],
+                    "files": ["fake_readme.md", "fake_tutorial.pdf"]
+                },
+                "fake_src": {
+                    "dirs": ["fake_utils"],
+                    "files": ["fake_app_logic.py"]
+                },
+                "fake_src/fake_utils": {
+                    "dirs": [],
+                    "files": ["fake_helpers.py"]
+                }
+            },
+            "path_scanned": path_arg,
+            "depth_scanned": depth_arg,
+            "note": "This is a predefined fake directory scan response."
+        }
+        fake_message = f"Fake directory scan of '{path_arg}' up to depth {depth_arg} successful."
+        if "unscannable_fake_path" in str(path_arg).lower():
+            fake_status = "failed"
+            fake_result = None
+            fake_message = f"Fake error scanning directory '{path_arg}'."
+            fake_error = {"code": "FAKE_SCAN_ERROR", "message": "This fake path is designated as unscannable."}
+    # --- End of added fake tools ---
 
     else: # Fallback for unrecognized tools
         fake_status = "failed"
