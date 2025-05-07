@@ -26,6 +26,7 @@ COPY ../../Rix_Brain ./Rix_Brain
 # Copy the config.json file from the project root into the container's /app directory
 COPY ../../config.json ./config.json
 # --- END CRITICAL PART ---
+RUN ls -R /app 
 
 # Command to run the application (adjust if your port or app variable is different)
 # Make sure your main.py FastAPI app is named 'app' (e.g., app = FastAPI())
