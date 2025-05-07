@@ -12,11 +12,11 @@ ENV RIX_PROJECT_ROOT=/app
 # CRITICAL COPY CHANGES: Paths are now relative to Pro_Rix/ context
 
 # Copy service-specific requirements
-COPY cloud_services/rix-manager-service/requirements.txt ./requirements.txt 
+COPY cloud_services/rix-manager-service/requirements.txt 
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy service-specific main.py
-COPY cloud_services/rix-manager-service/main.py ./main.py 
+COPY cloud_services/rix-manager-service/main.py
 
 # Copy the entire Rix_Brain directory from context root (Pro_Rix/Rix_Brain)
 COPY Rix_Brain ./Rix_Brain
