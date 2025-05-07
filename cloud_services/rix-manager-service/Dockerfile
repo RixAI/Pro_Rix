@@ -1,32 +1,42 @@
-# Assuming your Dockerfile is in:
-# C:\Users\Vishal Sharma\OneDrive\Documents\GitHub\Pro_Rix\cloud_services\rix-manager-service\Dockerfile
+# --- START OF CORRECTED Dockerfile (V60.1 Build Fix 2) ---
+# File is located at: cloud_services/rix-manager-service/Dockerfile
+# Build context is ASSUMED to be Pro_Rix/ when running deploy command
 
-# Python base image
 FROM python:3.11-slim 
 
-# Set environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-
-# Set the working directory in the container
 WORKDIR /app
+ENV RIX_PROJECT_ROOT=/app 
 
-# Copy the requirements file for the service and install dependencies
-COPY requirements.txt .
+# --- CORRECTED COPY Paths (relative to Pro_Rix/ build context) ---
+
+# 1. Copy service-specific requirements file
+COPY cloud_services/rix-manager-service/requirements.txt ./requirements.txt 
+# Destination ./requirements.txt means /app/requirements.txt because WORKDIR is /app
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the service's own main.py file
-COPY main.py .
+# 2. Copy service-specific main.py file
+COPY cloud_services/rix-manager-service/main.py ./main.py
+# Destination ./main.py means /app/main.py
 
-# --- CRITICAL PART ---
-# Copy the Rix_Brain directory from the project root into the container's /app directory
-# ../../ refers to going up two levels from cloud_services/rix-manager-service/ to Pro_Rix/
-COPY ../../Rix_Brain ./Rix_Brain
+# 3. Copy the entire shared Rix_Brain directory
+COPY Rix_Brain ./Rix_Brain
+# Source Rix_Brain is relative to Pro_Rix/ context root
+# Destination ./Rix_Brain means /app/Rix_Brain
 
-# Copy the config.json file from the project root into the container's /app directory
-COPY ../../config.json ./config.json
-# --- END CRITICAL PART ---
+# 4. Copy the shared config.json file
+COPY config.json ./config.json
+# Source config.json is relative to Pro_Rix/ context root
+# Destination ./config.json means /app/config.json
 
-# Command to run the application (adjust if your port or app variable is different)
-# Make sure your main.py FastAPI app is named 'app' (e.g., app = FastAPI())
+# --- END CORRECTED COPY Paths ---
+
+# Optional: Add build-time debug (uncomment if needed)
+# RUN ls -R /app 
+
+EXPOSE 8080
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# --- END OF CORRECTED Dockerfile (V60.1 Build Fix 2) ---

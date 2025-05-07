@@ -359,6 +359,99 @@ def _get_context_for_llm(
     return context_package
 
 
+# --- ADD THIS FUNCTION TO Rix_Brain/services/vertex_llm.py ---
+# Ensure 'json', 'LLMInvocationError', 'rix_config', 'VertexContent', 'VertexPart'
+# and other necessary components like _convert_history_to_vertex_content, _invoke_llm_with_retry
+# are available and imported in this file.
+
+async def invoke_llm_for_json_action( # Made async
+    session_id: str,
+    model_name_key: str, 
+    temperature_key: str, 
+    soul_prompt_template: str,
+    invocation_role: str, 
+    context_fields: Dict[str, Any], 
+    history_context: List[Dict] 
+) -> Optional[str]: 
+    log_prefix = f"[{session_id}] {invocation_role}"
+    if not VERTEX_AI_AVAILABLE or not RIX_BRAIN_LOADED or not rix_config: # Ensure RIX_BRAIN_LOADED check is relevant here
+        logger.error(f"{log_prefix}: Core components (Vertex/RixConfig) missing for LLM call.")
+        raise LLMInvocationError("Core components missing.", role=invocation_role)
+    
+    try:
+        model_name = rix_config.get_config(model_name_key)
+        temperature = float(rix_config.get_config(temperature_key, 0.5)) # Default temp if not found
+        if not model_name: raise ValueError(f"Model name for key '{model_name_key}' not found in config.")
+        if not soul_prompt_template: raise ValueError(f"Soul prompt template is empty for {invocation_role}")
+
+        final_prompt_str = soul_prompt_template
+        for key, value in context_fields.items():
+            # Placeholder convention: {{SOME_KEY_PLACEHOLDER}}
+            # Ensure keys in context_fields match what's expected by the soul
+            # e.g., if soul has {{USER_INPUT_PLACEHOLDER}}, context_fields should have "user_input"
+            placeholder = f"{{{{{key.upper()}_PLACEHOLDER}}}}" 
+            if isinstance(value, (dict, list)):
+                str_value = json.dumps(value) # Serialize dicts/lists to JSON strings for replacement
+            elif value is None:
+                str_value = "" # Replace None with empty string
+            else:
+                str_value = str(value)
+            final_prompt_str = final_prompt_str.replace(placeholder, str_value)
+        
+        # A more robust placeholder replacement:
+        # import re
+        # def replace_placeholders(template_str, data_dict):
+        #     def repl(match):
+        #         key = match.group(1).lower() # Convert placeholder key to lower to match data_dict keys
+        #         val = data_dict.get(key)
+        #         if isinstance(val, (dict, list)): return json.dumps(val)
+        #         if val is None: return ""
+        #         return str(val)
+        #     return re.sub(r"\{\{([\w_]+)_PLACEHOLDER\}\}", repl, template_str, flags=re.IGNORECASE)
+        # final_prompt_str = replace_placeholders(soul_prompt_template, {k.lower(): v for k,v in context_fields.items()})
+
+
+        if "{{" in final_prompt_str: # Basic check for un-filled placeholders
+            logger.warning(f"{log_prefix}: Potential un-filled placeholders in final prompt. Preview: {final_prompt_str[:500]}...")
+
+        # The soul prompt usually forms the main instruction, treated as the first user turn to the LLM.
+        # History context follows.
+        vertex_messages_for_llm = _convert_history_to_vertex_content(
+            [{'actor': 'System', 'message_type': 'system_instruction', 'content': final_prompt_str}] + history_context
+        )
+        # If your soul is already a multi-turn structure, you might parse it differently
+        # or expect `_convert_history_to_vertex_content` to handle a list of prompt parts.
+        # The above assumes soul_prompt_template is a single block of text instruction.
+
+        logger.info(f"{log_prefix}: Invoking LLM '{model_name}'. Effective prompt starts with: '{final_prompt_str[:100]}...' History items: {len(history_context)}")
+        
+        text_response, _ = await _invoke_llm_with_retry( # Assuming _invoke_llm_with_retry is async
+            model_name=model_name,
+            vertex_formatted_contents=vertex_messages_for_llm,
+            temperature=temperature,
+            session_id=session_id,
+            invocation_role=invocation_role,
+            tools=None 
+        )
+
+        if text_response:
+            logger.info(f"{log_prefix}: LLM returned text response. Preview: {text_response[:200]}...")
+            return text_response.strip()
+        else:
+            logger.error(f"{log_prefix}: LLM returned no text response.")
+            return None # Or raise an error: raise LLMInvocationError("LLM returned no text.", role=invocation_role)
+
+    except LLMInvocationError as e: # Catch specific LLM errors from _invoke_llm_with_retry
+        logger.error(f"{log_prefix}: LLMInvocationError: {e.message if hasattr(e, 'message') else e}", exc_info=True)
+        raise 
+    except ValueError as ve: # Catch config errors like missing model name
+        logger.error(f"{log_prefix}: ValueError during LLM preparation: {ve}", exc_info=True)
+        raise LLMInvocationError(f"Configuration or prompt error: {ve}", role=invocation_role, original_exception=ve)
+    except Exception as e:
+        logger.error(f"{log_prefix}: Unexpected error preparing/invoking LLM for JSON action: {type(e).__name__} - {e}", exc_info=True)
+        raise LLMInvocationError(f"Unexpected LLM error: {e}", role=invocation_role, original_exception=e)
+# --- END OF FUNCTION TO ADD ---
+
 # --- Agent Invocation Functions ---
 
 def invoke_classifier_agent(session_id: str, latest_message_details: Dict[str, Any], history_context: List[Dict]) -> Optional[Dict[str, Any]]:

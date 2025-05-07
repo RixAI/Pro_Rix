@@ -1,5 +1,9 @@
-# C:\Rix_Dev\Pro_Rix\cloud_services\rix_classifier_service\requirements.txt
+# --- START OF FILE cloud_services/rix-manager-service/requirements.txt ---
 fastapi>=0.110.0,<1.0.0
 uvicorn[standard]>=0.29.0,<1.0.0
 pydantic>=2.7.0,<3.0.0
-gunicorn>=20.1.0,<23.0.0 # Added gunicorn for production server
+google-cloud-aiplatform>=1.47.0 # For Vertex AI LLM calls via Rix_Brain.services.vertex_llm
+python-dotenv>=1.0.0 # If Rix_Brain.core.config_manager uses it and .env files are packaged
+# Add any other direct dependencies this service's main.py might have,
+# or that Rix_Brain modules it directly invokes might have (that aren't covered by aiplatform).
+# --- END OF FILE cloud_services/rix-manager-service/requirements.txt ---
